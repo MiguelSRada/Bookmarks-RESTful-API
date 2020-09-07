@@ -1,5 +1,10 @@
 package com.example
 
+import com.example.bookmarks.BookmarkService
+import com.example.bookmarks.BookmarksRepository
+import com.example.categories.CategoriesRepository
+import com.example.categories.CategoryService
+
 import io.ktor.application.*
 import io.ktor.response.*
 import io.ktor.request.*
@@ -9,12 +14,13 @@ import com.fasterxml.jackson.databind.*
 import io.ktor.jackson.*
 import io.ktor.features.*
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 data class Error(val error: String)
 data class Result(val result: String)
-data class CreateBookmarkRequest(var name: String? = null, var url: String? = null)
+data class CreateBookmarkRequest(var name: String? = null, var url: String? = null, var category: String? = null)
 data class CreateCategoryRequest(var id: Long? = null, var category: String? = null)
 
 fun Application.module(testing: Boolean = false) {
@@ -35,7 +41,10 @@ fun Application.module(testing: Boolean = false) {
         user = "root", password = "@Bestyear2020"
     )
 
-    val repository = BookmarksRepository(db)
+    val repositoryBookmarks = BookmarksRepository()
+    val repositoryCategories = CategoriesRepository()
+    val bookmarkService = BookmarkService(repositoryBookmarks, repositoryCategories, db)
+    val categoryService = CategoryService(repositoryCategories, repositoryBookmarks, db)
 
     routing {
         get("/") {
@@ -44,13 +53,22 @@ fun Application.module(testing: Boolean = false) {
 
         route("/bookmarks") {
             get("/") {
-                call.respond(HttpStatusCode.OK, repository.findBookmarks(call.request.queryParameters["searchText"]))
+                call.respond(
+                    HttpStatusCode.OK,
+                    bookmarkService.findBookmarks(call.request.queryParameters["searchText"])
+                )
             }
 
             get("/{id}") {
-                val id = call.parameters["id"]!!.toLong()
+                val id = call.parameters["id"]?.toLong() ?: throw IllegalArgumentException("there isn't id")
 
-                call.respond(HttpStatusCode.OK, repository.loadBookmarkById(id = id))
+                call.respond(HttpStatusCode.OK, bookmarkService.loadBookmarkById(id = id))
+            }
+
+            get("/categories/{category}") {
+                val category = call.parameters["category"] ?: throw IllegalArgumentException("category error")
+
+                call.respond(HttpStatusCode.OK, bookmarkService.bookmarksByCategory(category.replace("_", " ")))
             }
 
             put("/{id}") {
@@ -58,15 +76,16 @@ fun Application.module(testing: Boolean = false) {
                 val parameters = call.receive<CreateBookmarkRequest>()
                 val name = parameters.name
                 val url = parameters.url
+                val category = parameters.category
 
-                repository.updateBookmark(id = id, name = name, url = url)
+                bookmarkService.updateBookmark(id = id, name = name, url = url, category = category)
                 call.respond(HttpStatusCode.OK, Result("the bookmark $id has been uploaded"))
             }
 
             delete("/{id}") {
                 val id = call.parameters["id"]?.toLongOrNull() ?: throw IllegalArgumentException("bad id")
 
-                repository.deleteBookmark(id = id)
+                bookmarkService.deleteBookmark(id = id)
                 call.respond(HttpStatusCode.OK, Result("the bookmark $id has been delete"))
             }
 
@@ -74,44 +93,49 @@ fun Application.module(testing: Boolean = false) {
                 val parameters = call.receive<CreateBookmarkRequest>()
                 val name = parameters.name ?: throw IllegalArgumentException("missing parameter name")
                 val url = parameters.url ?: throw IllegalArgumentException("missing parameter url")
+                val category = parameters.category ?: "other"
 
-                repository.createBookmark(name = name, url = url)
+                bookmarkService.createBookmark(name = name, url = url, category = category)
                 call.respond(HttpStatusCode.OK, Result("the bookmark has been created successfully"))
             }
         }
 
         route("/categories") {
             get("/") {
-                call.respond(HttpStatusCode.OK, repository.findCategories(call.request.queryParameters["searchText"]))
+                call.respond(
+                    HttpStatusCode.OK,
+                    categoryService.findCategories(call.request.queryParameters["searchText"])
+                )
             }
 
             get("/{id}") {
                 val id = call.parameters["id"]!!.toLong()
 
-                call.respond(HttpStatusCode.OK, repository.loadCategoriesById(id = id))
+                call.respond(HttpStatusCode.OK, categoryService.loadCategoriesById(id = id))
             }
 
             put("/{id}") {
                 val id = call.parameters["id"]?.toLongOrNull() ?: throw IllegalArgumentException("bad id")
                 val parameters = call.receive<CreateCategoryRequest>()
-                val category = parameters.category ?: "other"
+                val category = parameters.category ?: throw IllegalArgumentException("there isn't category")
 
-                repository.updateCategory(id = id, category = category)
+                categoryService.updateCategory(id, category)
                 call.respond(HttpStatusCode.OK, Result("the bookmark $id has been uploaded"))
             }
 
-            post("/") {
-                val parameters = call.receive<CreateCategoryRequest>()
-                val id: Long = parameters.id ?: throw IllegalArgumentException("id can't be null")
-                val category: String = parameters.category ?: "other"
+            delete("/{category}"){
+                val category = call.parameters["category"] ?: throw  IllegalArgumentException("category not found")
 
-                repository.createCategory(id, category)
-                call.respond(HttpStatusCode.OK, Result("category created"))
+                categoryService.deleteCategory(category)
+                call.respond(HttpStatusCode.OK, Result("the category $category has been deleted"))
             }
-        }
-        route("/idk") {
-            get("/") {
-                call.respond(HttpStatusCode.OK, repository.bookmarksByCategory())
+
+            post("/") {
+                val parameter = call.receive<CreateCategoryRequest>()
+                val category = parameter.category ?: throw IllegalArgumentException("there is not category")
+
+                categoryService.createCategory(category)
+                call.respond(HttpStatusCode.OK, Result("create the bookmark"))
             }
         }
     }

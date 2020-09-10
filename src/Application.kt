@@ -78,6 +78,8 @@ fun Application.module(testing: Boolean = false) {
                 val url = parameters.url
                 val category = parameters.category
 
+                if( name == null || url == null || category == null) throw IllegalArgumentException("there is nothing to update")
+
                 bookmarkService.updateBookmark(id = id, name = name, url = url, category = category)
                 call.respond(HttpStatusCode.OK, Result("the bookmark $id has been uploaded"))
             }

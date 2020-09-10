@@ -44,7 +44,8 @@ class CategoriesRepository() {
         it[category_id] = newId
     }
 
-    fun findIdByCategory(category: String): Long? =
+    fun
+            findIdByCategory(category: String): Long? =
         Categories.select { Categories.category eq category }
             .map { it[Categories.id] }
             .firstOrNull()

@@ -44,6 +44,14 @@ dependencies {
     implementation("mysql:mysql-connector-java:8.0.21")// to connect to mysql db
     implementation("com.zaxxer:HikariCP:3.4.5")// to pool connection (?)
 
+    testImplementation "io.mockk:mockk:1.10.0"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.5.2"
+    testImplementation "org.junit.platform:junit-platform-console:1.5.2"
+
 
     testImplementation "io.ktor:ktor-server-tests:$ktor_version"
+}
+
+test{
+    useJUnitPlatform()
 }

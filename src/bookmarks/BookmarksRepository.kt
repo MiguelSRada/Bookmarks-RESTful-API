@@ -59,6 +59,8 @@ class BookmarksRepository() {
         Bookmarks.select { Bookmarks.category_id eq categoryId }
             .map { it[Bookmarks.id] }
             .firstOrNull()
+
+
 }
 
 

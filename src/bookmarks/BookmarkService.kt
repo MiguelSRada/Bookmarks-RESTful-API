@@ -21,8 +21,8 @@ class BookmarkService(
 
     fun loadBookmarkById(id: Long): List<Bookmark> = transaction(db) { bookmarksRepository.loadBookmarkById(id) }
 
-    fun bookmarksByCategory(category: String): List<Bookmark> =
-        transaction(db) { bookmarksRepository.bookmarksByCategory(category) }
+    fun bookmarksByCategory(category: String): List<Bookmark> = transaction(db) {
+        bookmarksRepository.bookmarksByCategory(category) }
 
     fun updateBookmark(id: Long, name: String? = null, url: String? = null, category: String? = null) = transaction(db)
     {

@@ -46,3 +46,10 @@ fun mockDbTransactionLong(dbMock:Database, dbTransactionMock: Transaction){
         dbTransactionMock.execFunction()
     }
 }
+fun mockDbTransactionNullableInt(dbMock:Database, dbTransactionMock: Transaction){
+    mockkStatic("org.jetbrains.exposed.sql.transactions.ThreadLocalTransactionManagerKt")
+    every { transaction(dbMock, any<Transaction.() -> Int?>()) } answers {
+        val execFunction: Transaction.() -> Int? = secondArg()
+        dbTransactionMock.execFunction()
+    }
+}

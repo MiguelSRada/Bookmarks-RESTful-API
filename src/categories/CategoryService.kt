@@ -1,13 +1,8 @@
 package com.example.categories
 
-import com.example.Bookmarks
-import com.example.Categories
 import com.example.bookmarks.BookmarksRepository
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
 
 class CategoryService(
     private val categoriesRepository: CategoriesRepository,
@@ -24,24 +19,23 @@ class CategoryService(
 
     fun loadCategoriesById(id: Long) = transaction(db) { categoriesRepository.loadCategoriesById(id) }
 
-    fun updateCategory(id: Long, category: String) = transaction(db) {
+    fun updateCategory(id: Long, categoryName: String) = transaction(db) {
         categoriesRepository.findById(id)?.let {
-            val categoryQuery: String? = categoriesRepository.findByCategory(category)
-            if (categoryQuery == null) {
-                categoriesRepository.updateCategory(id, category)
+            if (categoriesRepository.findByCategoryName(categoryName) == null) {
+                categoriesRepository.updateCategory(id, categoryName)
             } else {
-                categoriesRepository.replaceId(id, categoriesRepository.getId(category))
+                categoriesRepository.replaceId(id, categoriesRepository.getId(categoryName))
             }
         }
     }
 
-    fun createCategory(category: String) = transaction(db) {
-        val result: String? = categoriesRepository.findByCategory(category)
-        if (result == null) categoriesRepository.createCategory(category)
+    fun createCategory(categoryName: String) = transaction(db) {
+        val result = categoriesRepository.findByCategoryName(categoryName)
+        if (result == null) categoriesRepository.createCategory(categoryName)
     }
 
-    fun deleteCategory(category: String) {
-        categoriesRepository.findIdByCategory(category)?.let {
+    fun deleteCategory(categoryName: String) {
+        categoriesRepository.findIdByCategory(categoryName)?.let {
             val queryDelete: Long? = bookmarksRepository.findByCategoryId(it)
             if (queryDelete == null) categoriesRepository.deleteCategory(it)
         }

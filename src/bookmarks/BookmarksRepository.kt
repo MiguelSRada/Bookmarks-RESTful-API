@@ -6,12 +6,12 @@ import com.example.Bookmarks.url
 import com.example.Categories
 import org.jetbrains.exposed.sql.*
 
-class BookmarksRepository() {
-    fun createBookmark(name: String, url: String, category_id: Long): Long {
+class BookmarksRepository {
+    fun createBookmark(name: String, url: String, categoryId: Long): Long {
         return Bookmarks.insert {
             it[Bookmarks.name] = name
             it[Bookmarks.url] = url
-            it[Bookmarks.category_id] = category_id
+            it[Bookmarks.categoryId] = categoryId
         }[Bookmarks.id]
     }
 
@@ -22,12 +22,12 @@ class BookmarksRepository() {
 
     fun deleteBookmark(id: Long) = Bookmarks.deleteWhere { Bookmarks.id eq id }
 
-    fun updateBookmark(id: Long, name: String? = null, url: String? = null, category_id: Long? = null) =
+    fun updateBookmark(id: Long, name: String? = null, url: String? = null, categoryId: Long? = null) =
         Bookmarks.update({ Bookmarks.id eq id })
         {
             if (name != null) it[Bookmarks.name] = name
             if (url != null) it[Bookmarks.url] = url
-            if (category_id != null) it[Bookmarks.category_id] = category_id
+            if (categoryId != null) it[Bookmarks.categoryId] = categoryId
         }
 
     fun loadBookmarks(): List<Bookmark> = Bookmarks.selectAll().map { Bookmarks.toBookmark(it) }
@@ -36,17 +36,17 @@ class BookmarksRepository() {
         Bookmarks.select { (name like searchText(searchText)) or (url like searchText(searchText)) }
             .map { Bookmarks.toBookmark(it) }
 
-    fun bookmarksByCategory(category: String): List<Bookmark> =
-        Bookmarks.select { Bookmarks.category_id eq getId(category) }
+    fun bookmarksByCategory(categoryName: String): List<Bookmark> =
+        Bookmarks.select { Bookmarks.categoryId eq getId(categoryName) }
             .map { Bookmarks.toBookmark(it) }
 
-    private fun getId(category: String): Long =
-        Categories.select { Categories.category eq category }
+    private fun getId(categoryName: String): Long =
+        Categories.select { Categories.categoryName eq categoryName }
             .map { it[Categories.id] }
             .first()
 
     private fun Bookmarks.toBookmark(row: ResultRow): Bookmark =
-        Bookmark(name = row[name], url = row[url], category_id = row[category_id])
+        Bookmark(name = row[name], url = row[url], categoryId = row[categoryId])
 
     private fun searchText(searchText: String): String {
         var newString = searchText
@@ -56,7 +56,7 @@ class BookmarksRepository() {
     }
 
     fun findByCategoryId(categoryId: Long): Long? =
-        Bookmarks.select { Bookmarks.category_id eq categoryId }
+        Bookmarks.select { Bookmarks.categoryId eq categoryId }
             .map { it[Bookmarks.id] }
             .firstOrNull()
 

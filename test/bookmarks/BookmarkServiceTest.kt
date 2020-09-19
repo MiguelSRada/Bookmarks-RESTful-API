@@ -1,9 +1,11 @@
 package bookmarks
 
+import categories.categoryId
 import com.example.bookmarks.Bookmark
 import com.example.bookmarks.BookmarkService
 import com.example.bookmarks.BookmarksRepository
 import com.example.categories.CategoriesRepository
+import com.example.categories.Category
 import com.example.commons.mockDbTransactionBookmark
 import com.example.commons.mockDbTransactionInt
 import com.example.commons.mockDbTransactionLong
@@ -18,9 +20,11 @@ import kotlin.test.assertEquals
 
 private val bookmarks = emptyList<Bookmark>()
 private const val searchText = "my-search"
-private const val longId: Long = 1
-private const val category = "categoryName"
+private const val categoryId: Long = 1
+private const val categoryName: String = "categoryName"
 private const val longBookmarkId : Long = 1
+private val category: Category = Category(categoryId, categoryName)
+
 
 
 internal class BookmarkServiceTest {
@@ -33,7 +37,7 @@ internal class BookmarkServiceTest {
         BookmarkService(bookmarksRepositoryMock, categoriesRepositoryMock, dbMock)
 
 
-    @Test//passed
+    @Test
     fun findBookmarksWhenSearchTextIsNull() {
         // Setup - Given
         mockDbTransactionBookmark(dbMock, dbTransactionMock)
@@ -47,7 +51,7 @@ internal class BookmarkServiceTest {
 
     }
 
-    @Test//passed
+    @Test
     fun findBookmarksWhenSearchTextIsNotNull() {
         // Setup - Given
         mockDbTransactionBookmark(dbMock, dbTransactionMock)
@@ -61,110 +65,93 @@ internal class BookmarkServiceTest {
 
     }
 
-    @Test//passed
+    @Test
     fun loadBookmarkById() {
         // Setup - Given
         mockDbTransactionBookmark(dbMock, dbTransactionMock)
-        every { bookmarksRepositoryMock.loadBookmarkById(longId) } returns bookmarks
+        every { bookmarksRepositoryMock.loadBookmarkById(longBookmarkId) } returns bookmarks
 
         // Action - When
-        val result = testInstance.loadBookmarkById(longId)
+        val result = testInstance.loadBookmarkById(longBookmarkId)
 
         // Expected
         assertEquals(result, bookmarks)
     }
 
-    @Test//passed
-    fun bookmarksByCategory() {
+    @Test
+    fun loadBookmarksByCategory() {
         // Setup - Given
         mockDbTransactionBookmark(dbMock, dbTransactionMock)
-        every { bookmarksRepositoryMock.bookmarksByCategory(category) } returns bookmarks
+        every { bookmarksRepositoryMock.bookmarksByCategory(categoryName) } returns bookmarks
 
         // Action - When
-        val result = testInstance.bookmarksByCategory(category)
+        val result = testInstance.bookmarksByCategory(categoryName)
 
         // Expected
         assertEquals(result, bookmarks)
     }
 
-    @Test//passed
-    fun dontUpdateBookmark() {
+    @Test
+    fun updateBookmarkWhenDataIsNull() {
         // Setup - Given
         mockDbTransactionInt(dbMock, dbTransactionMock)
-        every { bookmarksRepositoryMock.updateBookmark(longId, null, null, null) } returns longId.toInt()
+        every { bookmarksRepositoryMock.updateBookmark(longBookmarkId, null, null, null) } returns longBookmarkId.toInt()
 
         // Action - When
-        val result = testInstance.updateBookmark(longId, null, null, null)
-
-        // Expected
-        assertEquals(result, longId.toInt())
-    }
-    /*
-    @Test//passed
-    fun updateBookmark() {
-        // Setup - Given
-        mockDbTransactionInt(dbMock, dbTransactionMock)
-        every { bookmarksRepositoryMock.updateBookmark(longId, null, null, longId) } returns longBookmarkId.toInt()
-        every { categoriesRepositoryMock.findByCategory(category) } returns category
-
-        // Action - When
-        val result = testInstance.updateBookmark(longId, null, null, category)
+        val result = testInstance.updateBookmark(longBookmarkId, null, null, null)
 
         // Expected
         assertEquals(result, longBookmarkId.toInt())
     }
-    */
 
-    @Test//passed
+    @Test
     fun deleteBookmark() {
         // Setup - Given
         mockDbTransactionInt(dbMock, dbTransactionMock)
-        every { bookmarksRepositoryMock.deleteBookmark(longId) } returns longId.toInt()
+        every { bookmarksRepositoryMock.deleteBookmark(longBookmarkId) } returns longBookmarkId.toInt()
 
         // Action - When
-        val result = testInstance.deleteBookmark(longId)
+        val result = testInstance.deleteBookmark(longBookmarkId)
 
         // Expected
-        assertEquals(result, longId.toInt())
+        assertEquals(result, longBookmarkId.toInt())
     }
 
     @Test
-    fun createBookmarkWithExistingCategory()  {
+    fun createBookmarkWhenItsCategoryAlreadyExist()  {
         // Setup - Given
         mockDbTransactionLong(dbMock, dbTransactionMock)
-        every { categoriesRepositoryMock.findByCategory(category) } returns category
-        every { categoriesRepositoryMock.getId(category) } returns longId
-        every { bookmarksRepositoryMock
-            .createBookmark("name", "url", longId) } returns longBookmarkId
+        every { categoriesRepositoryMock.findByCategoryName(categoryName) } returns category
+        every { categoriesRepositoryMock.getId(categoryName) } returns longBookmarkId
+        every { bookmarksRepositoryMock.createBookmark("name", "url", longBookmarkId ) } returns longBookmarkId
 
         // Action - When
-        val result = testInstance.createBookmark("name", "url", category)
+        val result = testInstance.createBookmark("name", "url", categoryName)
 
         // Expected
-        verify { categoriesRepositoryMock.findByCategory(category) }
-        verify(exactly = 0) { categoriesRepositoryMock.createCategory(category) }
-        verify { bookmarksRepositoryMock.createBookmark("name", "url", longId )}
+        verify { categoriesRepositoryMock.findByCategoryName(categoryName) }
+        verify(exactly = 0) { categoriesRepositoryMock.createCategory(categoryName) }
+        verify { bookmarksRepositoryMock.createBookmark("name", "url", longBookmarkId )}
 
         assertEquals(result, longBookmarkId)
     }
 
     @Test
-    fun createBookmarkWithNewCategory() {
+    fun createBookmarkWhenItsCategoryDoesntExist() {
         // Setup - Given
         mockDbTransactionLong(dbMock, dbTransactionMock)
-        every { categoriesRepositoryMock.findByCategory(category) } returns null
-        every { categoriesRepositoryMock.createCategory(category) } returns longId
-        every { categoriesRepositoryMock.getId(category) } returns longId
-        every { bookmarksRepositoryMock
-            .createBookmark("name", "url", longId) } returns longBookmarkId
+        every { categoriesRepositoryMock.findByCategoryName(categoryName) } returns null
+        every { categoriesRepositoryMock.createCategory(categoryName) } returns categoryId
+        every { categoriesRepositoryMock.getId("categoryName") } returns categoryId
+        every { bookmarksRepositoryMock.createBookmark("name", "url", categoryId) } returns longBookmarkId
 
         // Action - When
-        val result = testInstance.createBookmark("name", "url", category)
+        val result = testInstance.createBookmark("name", "url", categoryName)
 
         // Expected
-        verify { categoriesRepositoryMock.findByCategory(category) }
-        verify { categoriesRepositoryMock.createCategory(category) }
-        verify { bookmarksRepositoryMock.createBookmark("name", "url", longId )}
+        verify { categoriesRepositoryMock.findByCategoryName(categoryName) }
+        verify { categoriesRepositoryMock.createCategory(categoryName) }
+        verify { bookmarksRepositoryMock.createBookmark("name", "url", categoryId )}
 
         assertEquals(result, longBookmarkId)
     }
